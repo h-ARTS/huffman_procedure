@@ -1,28 +1,53 @@
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Huffman {
 
     private static Code root;
 
-    private static StringBuilder currentCodeWord = new StringBuilder();
+    private static StringBuilder stringBuilder = new StringBuilder();
+
     private static Map<Character, String> codeWordTable = new HashMap<>();
+
+    private static List<Character> textFile;
 
     public static void main(String[] args) throws IOException {
         createHuffmanTree();
 
         buildCodeWords(root);
 
+        filterOutEmptyCodewords();
+
+        stringBuilder = new StringBuilder();
         codeWordTable.forEach((character, s) -> {
-            System.out.println(character + " " + s);
+            stringBuilder.append((int) character).append(":").append(s).append("-");
         });
+        System.out.println(stringBuilder.deleteCharAt(stringBuilder.length()-1));
+
+        StringBuilder strBuilder = new StringBuilder();
+        textFile.forEach(character -> {
+            strBuilder.append(codeWordTable.get(character));
+        });
+        String[] strArray = strBuilder.toString().split("");
+
+        System.out.println(strBuilder.length() % 8 == 0);
+        boolean oneAdded = false;
+        while (strBuilder.length() % 8 != 0) {
+            if (oneAdded) {
+                strBuilder.append(1);
+                oneAdded = true;
+            } else {
+                strBuilder.append(0);
+            }
+        }
     }
 
     /*
     * Create frequency table from the list of character ascii codes.
     * */
     private static Map<Character, Integer> createFrequencyTable() throws IOException {
-        List<Character> textFile = getListOfCharCodesFromFile("src/text.txt");
+        textFile = getListOfCharCodesFromFile("src/text.txt");
         HashMap<Character, Integer> frequencyTable = new HashMap<>();
         textFile.forEach(character -> {
             // Increase frequency if character exists.
@@ -75,20 +100,25 @@ public class Huffman {
         buildCodeWords(pq, null, "");
     }
 
+    /*
+    * Build codewords recursively and insert it into hashmap.
+    * The overloaded method is used for the initial call and
+    * when no left-hand and right-hand exists in a Code i.e. no children.
+    * */
     private static void buildCodeWords(Code pq, Code parent, String position) {
         if (parent != null) {
             pq.setParent(parent);
         }
 
         if (pq.getLeft() != null) {
-            currentCodeWord.append(pq.getBinaryLeft());
+            stringBuilder.append(pq.getBinaryLeft());
             buildCodeWords(pq.getLeft(), pq, "left");
         } else if (pq.getRight() != null) {
-            currentCodeWord.append(pq.getBinaryRight());
+            stringBuilder.append(pq.getBinaryRight());
             buildCodeWords(pq.getRight(), pq, "right");
         } else {
-            codeWordTable.put(pq.getAscii(), currentCodeWord.toString());
-            currentCodeWord = new StringBuilder();
+            codeWordTable.put(pq.getAscii(), stringBuilder.toString());
+            stringBuilder = new StringBuilder();
             if (position.equals("right")) {
                 parent.setRight(null);
             } else if (position.equals("left")) {
@@ -104,6 +134,17 @@ public class Huffman {
             }
 
         }
+    }
+
+    private static void filterOutEmptyCodewords() {
+        AtomicReference<Character> target = new AtomicReference<>();
+        codeWordTable.keySet().forEach(character -> {
+            if (codeWordTable.get(character).isBlank()) {
+                target.set(character);;
+            }
+        });
+
+        codeWordTable.remove(target.get());
     }
 
     private static void readBinaryFile() throws IOException {
