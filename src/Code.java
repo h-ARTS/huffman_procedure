@@ -13,7 +13,7 @@
 public class Code implements Comparable<Code> {
     private char ascii;
     private int frequency;
-    private Code left, right;
+    private Code left, right, parent;
 
     private short binaryLeft, binaryRight;
 
@@ -56,6 +56,14 @@ public class Code implements Comparable<Code> {
     public void setRight(Code right) {
         this.right = right;
         this.binaryRight = 1;
+    }
+
+    public Code getParent() {
+        return parent;
+    }
+
+    public void setParent(Code parent) {
+        this.parent = parent;
     }
 
     public short getBinaryLeft() {

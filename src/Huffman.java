@@ -5,8 +5,17 @@ public class Huffman {
 
     private static Code root;
 
+    private static StringBuilder currentCodeWord = new StringBuilder();
+    private static Map<Character, String> codeWordTable = new HashMap<>();
+
     public static void main(String[] args) throws IOException {
         createHuffmanTree();
+
+        buildCodeWords(root);
+
+        codeWordTable.forEach((character, s) -> {
+            System.out.println(character + " " + s);
+        });
     }
 
     /*
@@ -53,13 +62,48 @@ public class Huffman {
             parent.setRight(rightHand);
 
             /*
-            * Add it to the root and re-add to the queue.
+            * Add it to the root and re-add it to the queue.
             * */
             setRoot(parent);
             huffmanPrioQueue.add(parent);
         }
 
         System.out.println("finish");
+    }
+
+    private static void buildCodeWords(Code pq) {
+        buildCodeWords(pq, null, "");
+    }
+
+    private static void buildCodeWords(Code pq, Code parent, String position) {
+        if (parent != null) {
+            pq.setParent(parent);
+        }
+
+        if (pq.getLeft() != null) {
+            currentCodeWord.append(pq.getBinaryLeft());
+            buildCodeWords(pq.getLeft(), pq, "left");
+        } else if (pq.getRight() != null) {
+            currentCodeWord.append(pq.getBinaryRight());
+            buildCodeWords(pq.getRight(), pq, "right");
+        } else {
+            codeWordTable.put(pq.getAscii(), currentCodeWord.toString());
+            currentCodeWord = new StringBuilder();
+            if (position.equals("right")) {
+                parent.setRight(null);
+            } else if (position.equals("left")) {
+                parent.setLeft(null);
+            }
+
+            if (parent != null) {
+                if (parent.getLeft() == null && parent.getRight() == null) {
+                    parent.getParent().setRight(null);
+                    parent.getParent().setLeft(null);
+                }
+                buildCodeWords(getRoot());
+            }
+
+        }
     }
 
     private static void readBinaryFile() throws IOException {
