@@ -1,53 +1,46 @@
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-
 public class Huffman {
 
     private static Code root;
 
     private static StringBuilder stringBuilder = new StringBuilder();
 
-    private static Map<Character, String> codeWordTable = new HashMap<>();
+    private static final Map<Character, String> codeWordTable = new HashMap<>();
 
     private static List<Character> textFile;
 
     public static void main(String[] args) throws IOException {
-        createHuffmanTree();
+//        compressFile("src/text.txt");
+
+        decompress("src/output-mada.dat", "src/dec_tab-mada.txt");
+    }
+
+    public static void compressFile(String pathname) throws IOException {
+        createHuffmanTree(pathname);
 
         buildCodeWords(root);
+        System.out.println("Codewords created.");
 
-        filterOutEmptyCodewords();
+        saveHuffmanCodeInFile();
 
-        stringBuilder = new StringBuilder();
-        codeWordTable.forEach((character, s) -> {
-            stringBuilder.append((int) character).append(":").append(s).append("-");
-        });
-        System.out.println(stringBuilder.deleteCharAt(stringBuilder.length()-1));
+        storeBytes(bitStringHuffmanCode());
+    }
 
-        StringBuilder strBuilder = new StringBuilder();
-        textFile.forEach(character -> {
-            strBuilder.append(codeWordTable.get(character));
-        });
-        String[] strArray = strBuilder.toString().split("");
+    public static void decompress(String pathnameBinary, String huffmanTablePathname) throws IOException {
+        String bits = readBinaryFile(pathnameBinary);
 
-        System.out.println(strBuilder.length() % 8 == 0);
-        boolean oneAdded = false;
-        while (strBuilder.length() % 8 != 0) {
-            if (oneAdded) {
-                strBuilder.append(1);
-                oneAdded = true;
-            } else {
-                strBuilder.append(0);
-            }
-        }
+        String decompressedText = convertBitsToPlainText(bits, huffmanTablePathname);
+
+        System.out.println(decompressedText);
+        saveTextInFile(decompressedText, "output/decompress.txt");
     }
 
     /*
     * Create frequency table from the list of character ascii codes.
     * */
-    private static Map<Character, Integer> createFrequencyTable() throws IOException {
-        textFile = getListOfCharCodesFromFile("src/text.txt");
+    private static Map<Character, Integer> createFrequencyTable(String pathname) throws IOException {
+        textFile = getListOfCharCodesFromFile(pathname);
         HashMap<Character, Integer> frequencyTable = new HashMap<>();
         textFile.forEach(character -> {
             // Increase frequency if character exists.
@@ -58,11 +51,13 @@ public class Huffman {
             }
         });
 
+        System.out.println("Frequency table created.");
+
         return frequencyTable;
     }
 
-    private static void createHuffmanTree() throws IOException {
-        Map<Character, Integer> frequencyTable = createFrequencyTable();
+    private static void createHuffmanTree(String pathname) throws IOException {
+        Map<Character, Integer> frequencyTable = createFrequencyTable(pathname);
         /*
         * This queue data structure is optimal for adding objects with comparable implementation
         * Picking one code will result to remove it from queue and add the parent back to
@@ -81,7 +76,7 @@ public class Huffman {
             Code rightHand = huffmanPrioQueue.poll();
             // The parent code with the hyphen as ascii will be ignored,
             // and it serves as a placeholder.
-            Code parent = new Code('-', leftHand.getFrequency()+ rightHand.getFrequency());
+            Code parent = new Code( leftHand.getFrequency()+ rightHand.getFrequency());
 
             parent.setLeft(leftHand);
             parent.setRight(rightHand);
@@ -93,19 +88,21 @@ public class Huffman {
             huffmanPrioQueue.add(parent);
         }
 
-        System.out.println("finish");
+        System.out.println("Huffman tree finished.");
     }
 
     private static void buildCodeWords(Code pq) {
         buildCodeWords(pq, null, "");
     }
-
     /*
     * Build codewords recursively and insert it into hashmap.
     * The overloaded method is used for the initial call and
     * when no left-hand and right-hand exists in a Code i.e. no children.
     * */
     private static void buildCodeWords(Code pq, Code parent, String position) {
+        if (root.equals(pq) && pq.getLeft() == null && pq.getRight() == null) {
+            return;
+        }
         if (parent != null) {
             pq.setParent(parent);
         }
@@ -113,11 +110,15 @@ public class Huffman {
         if (pq.getLeft() != null) {
             stringBuilder.append(pq.getBinaryLeft());
             buildCodeWords(pq.getLeft(), pq, "left");
-        } else if (pq.getRight() != null) {
+        }
+        else if (pq.getRight() != null) {
             stringBuilder.append(pq.getBinaryRight());
             buildCodeWords(pq.getRight(), pq, "right");
-        } else {
-            codeWordTable.put(pq.getAscii(), stringBuilder.toString());
+        }
+        else {
+            if (pq.getAscii() != '\u0000') {
+                codeWordTable.put(pq.getAscii(), stringBuilder.toString());
+            }
             stringBuilder = new StringBuilder();
             if (position.equals("right")) {
                 parent.setRight(null);
@@ -127,39 +128,123 @@ public class Huffman {
 
             if (parent != null) {
                 if (parent.getLeft() == null && parent.getRight() == null) {
+                    if (parent.getParent() != null) {
+                        buildCodeWords(getRoot());
+                    } else {
+                        return;
+                    }
                     parent.getParent().setRight(null);
                     parent.getParent().setLeft(null);
                 }
                 buildCodeWords(getRoot());
             }
-
         }
     }
 
-    private static void filterOutEmptyCodewords() {
-        AtomicReference<Character> target = new AtomicReference<>();
-        codeWordTable.keySet().forEach(character -> {
-            if (codeWordTable.get(character).isBlank()) {
-                target.set(character);;
-            }
+    private static void saveHuffmanCodeInFile() throws IOException {
+        stringBuilder = new StringBuilder();
+        codeWordTable.forEach((character, s) -> {
+            stringBuilder.append((int) character).append(":").append(s).append("-");
         });
+        String huffmanCode = stringBuilder.deleteCharAt(stringBuilder.length()-1).toString();
 
-        codeWordTable.remove(target.get());
+        System.out.println("Huffman code saved.");
+
+        saveTextInFile(huffmanCode, "output/dec_tab.txt");
     }
 
-    private static void readBinaryFile() throws IOException {
-        File file = new File("src/output-mada.dat");
+    private static String bitStringHuffmanCode() {
+        StringBuilder strBuilder = new StringBuilder();
+        textFile.forEach(character -> {
+            strBuilder.append(codeWordTable.get(character));
+        });
+
+        boolean oneAdded = false;
+        while (strBuilder.length() % 8 != 0) {
+            if (!oneAdded) {
+                strBuilder.append(1);
+                oneAdded = true;
+            } else {
+                strBuilder.append(0);
+            }
+        }
+
+        System.out.println("Bit string created.");
+
+        return strBuilder.toString();
+    }
+
+    private static void storeBytes(String bitString) throws IOException {
+        List<Byte> results = new ArrayList<>();
+        final int limit = 8;
+
+        for (int i = 0; i < bitString.length(); i += limit) {
+            int bitIntValue = Integer.valueOf(bitString.substring(i, Math.min(bitString.length(), i + limit)), 2);
+            results.add((byte)bitIntValue);
+        }
+
+        byte[] out = new byte[results.size()];
+        results.forEach(aByte -> out[results.indexOf(aByte)] = aByte);
+
+        System.out.println("Bytes saved.");
+
+        FileOutputStream fos = new FileOutputStream("output/output.dat");
+        fos.write(out);
+        fos.close();
+    }
+
+    private static String readBinaryFile(String pathname) throws IOException {
+//        File file = new File("src/output-mada.dat");
+        File file = new File(pathname);
         byte[] bFile = new byte[(int) file.length()];
         FileInputStream fis = new FileInputStream(file);
         StringBuilder sb = new StringBuilder();
         fis.read(bFile);
         for (int b : bFile) {
-            String str = String.format("%8s", Integer.toBinaryString(b)).replace(' ', '0');
+            String str = String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0');
             sb.append(str);
         }
-        System.out.println(sb.toString());
-        System.out.println(sb.toString().length());
+
         fis.close();
+
+        return removeExtendedBits(sb);
+    }
+
+    private static String removeExtendedBits(StringBuilder sb) {
+        int lastIndexOne = sb.lastIndexOf("1");
+        return sb.substring(0, lastIndexOne);
+    }
+
+    private static String convertBitsToPlainText(String bitString, String pathname) throws IOException {
+        String huffmanCodes = loadTextFile(pathname);
+        StringBuilder plainText = new StringBuilder();
+        Map<String, Integer> huffmanCodeTable = new HashMap<>();
+
+        Arrays.stream(huffmanCodes.split("-")).toList().forEach(code -> {
+            String[] asciiBits = code.split(":");
+            huffmanCodeTable.put(asciiBits[1], Integer.parseInt(asciiBits[0]));
+        });
+
+        List<String> bitKeys = new ArrayList<>();
+        String[] bits = bitString.split("");
+        StringBuilder current = new StringBuilder();
+        int lengthBits = bits.length;
+        for (String bit: bits) {
+            current.append(bit);
+            bitKeys = huffmanCodeTable.keySet().stream()
+                    .filter(b -> b.contains(current.toString())).toList();
+
+            if (bitKeys.size() == 1 || bitKeys.contains(current.toString())) {
+                int characterInt = huffmanCodeTable.get(current.toString());
+                plainText.append((char)characterInt);
+                bitString = bitString.replaceFirst(current.toString(), "");
+                current.delete(0, current.length());
+            }
+        }
+
+        System.out.println("Bits converted to plaintext.");
+
+        return plainText.toString();
     }
 
     /*
@@ -178,13 +263,13 @@ public class Huffman {
         return charsString.stream().map(c -> c.charAt(0)).toList();
     }
 
-    private static void saveTextInFile(String rawText, String filename) throws IOException {
-        FileWriter cipherTextFile = new FileWriter(filename);
-        BufferedWriter cipherWriter = new BufferedWriter(cipherTextFile);
+    private static void saveTextInFile(String rawText, String pathname) throws IOException {
+        FileWriter textFile = new FileWriter(pathname);
+        BufferedWriter writer = new BufferedWriter(textFile);
 
-        cipherWriter.write(rawText);
+        writer.write(rawText);
 
-        cipherWriter.close();
+        writer.close();
     }
 
     private static String loadTextFile(String pathname) throws IOException {

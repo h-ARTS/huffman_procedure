@@ -1,0 +1,5 @@
+This procedure is only worthwhile for texts of a certain length. Otherwise, the overhead for creating and storing the Huffman table is too big.
+
+Alternatively, one could think about a better method for storing the table. 
+
+Well done! 

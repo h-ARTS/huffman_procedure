@@ -17,6 +17,12 @@ public class Code implements Comparable<Code> {
 
     private short binaryLeft, binaryRight;
 
+    public Code(int frequency) {
+        this.frequency = frequency;
+        this.left = null;
+        this.right = null;
+    }
+
     public Code(char ascii, int frequency) {
         this.ascii = ascii;
         this.frequency = frequency;
