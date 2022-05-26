@@ -56,13 +56,14 @@ public class Huffman {
         return frequencyTable;
     }
 
+    /*
+     * For creating a huffman tree, we used a priority queue data structure
+     * as it is optimal for adding objects with comparable implementation.
+     * Picking one code will result to remove it from queue and add the parent back to
+     * the queue until we get the size of 1.
+     * */
     private static void createHuffmanTree(String pathname) throws IOException {
         Map<Character, Integer> frequencyTable = createFrequencyTable(pathname);
-        /*
-        * This queue data structure is optimal for adding objects with comparable implementation
-        * Picking one code will result to remove it from queue and add the parent back to
-        * the queue until we get the size of 1.
-        * */
         PriorityQueue<Code> huffmanPrioQueue = new PriorityQueue<>();
         Set<Character> characters = frequencyTable.keySet();
 
@@ -153,6 +154,10 @@ public class Huffman {
         saveTextInFile(huffmanCode, "output/dec_tab.txt");
     }
 
+    /*
+    * Bit-string creation and correction of bit length
+    * by ensuring the length is always a multiple of 8.
+    * */
     private static String bitStringHuffmanCode() {
         StringBuilder strBuilder = new StringBuilder();
         textFile.forEach(character -> {
@@ -174,6 +179,12 @@ public class Huffman {
         return strBuilder.toString();
     }
 
+    /*
+    * Here we use the bit-string from bitStringHuffmanCode method
+    * and divide it by 8. Every bit substring we convert to integer
+    * and subsequently convert into a byte for the byte array and save
+    * it in the output.dat file.
+    * */
     private static void storeBytes(String bitString) throws IOException {
         List<Byte> results = new ArrayList<>();
         final int limit = 8;
@@ -193,8 +204,13 @@ public class Huffman {
         fos.close();
     }
 
+    /*
+    * Read binary file in (.dat) and converts it into a bit-string.
+    * To get the 8bits we convert the signed byte to an unsigned integer
+    * by adding 0xFF to it.
+    * Additionally, the extended bits are removed at the end.
+    * */
     private static String readBinaryFile(String pathname) throws IOException {
-//        File file = new File("src/output-mada.dat");
         File file = new File(pathname);
         byte[] bFile = new byte[(int) file.length()];
         FileInputStream fis = new FileInputStream(file);
@@ -215,6 +231,10 @@ public class Huffman {
         return sb.substring(0, lastIndexOne);
     }
 
+    /*
+    * The encoding process of the bit-string by reading through the bits,
+    * add it to a variable and remove it from the bit-string.
+    * */
     private static String convertBitsToPlainText(String bitString, String pathname) throws IOException {
         String huffmanCodes = loadTextFile(pathname);
         StringBuilder plainText = new StringBuilder();
