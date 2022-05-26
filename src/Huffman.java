@@ -6,9 +6,11 @@ public class Huffman {
 
     private static StringBuilder stringBuilder = new StringBuilder();
 
+    private static List<Character> textFile;
+
     private static final Map<Character, String> codeWordTable = new HashMap<>();
 
-    private static List<Character> textFile;
+    public static final char NULL_VALUE = '\u0000';
 
     public static void main(String[] args) throws IOException {
 //        compressFile("src/text.txt");
@@ -77,7 +79,7 @@ public class Huffman {
             Code rightHand = huffmanPrioQueue.poll();
             // The parent code with the hyphen as ascii will be ignored,
             // and it serves as a placeholder.
-            Code parent = new Code( leftHand.getFrequency()+ rightHand.getFrequency());
+            Code parent = new Code(leftHand.getFrequency()+ rightHand.getFrequency());
 
             parent.setLeft(leftHand);
             parent.setRight(rightHand);
@@ -98,7 +100,7 @@ public class Huffman {
     /*
     * Build codewords recursively and insert it into hashmap.
     * The overloaded method is used for the initial call and
-    * when no left-hand and right-hand exists in a Code i.e. no children.
+    * if no left-hand and right-hand exists in a Code i.e. no children.
     * */
     private static void buildCodeWords(Code pq, Code parent, String position) {
         if (root.equals(pq) && pq.getLeft() == null && pq.getRight() == null) {
@@ -117,7 +119,7 @@ public class Huffman {
             buildCodeWords(pq.getRight(), pq, "right");
         }
         else {
-            if (pq.getAscii() != '\u0000') {
+            if (pq.getAscii() != NULL_VALUE) {
                 codeWordTable.put(pq.getAscii(), stringBuilder.toString());
             }
             stringBuilder = new StringBuilder();
