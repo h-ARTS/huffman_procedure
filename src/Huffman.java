@@ -74,6 +74,10 @@ public class Huffman {
             huffmanPrioQueue.add(code);
         });
 
+        if (huffmanPrioQueue.size() == 1) {
+            setRoot(huffmanPrioQueue.poll());
+        }
+
         while (1 < huffmanPrioQueue.size()) {
             Code leftHand = huffmanPrioQueue.poll();
             Code rightHand = huffmanPrioQueue.poll();
@@ -103,7 +107,11 @@ public class Huffman {
     * if no left-hand and right-hand exists in a Code i.e. no children.
     * */
     private static void buildCodeWords(Code pq, Code parent, String position) {
-        if (root.equals(pq) && pq.getLeft() == null && pq.getRight() == null) {
+        if (root.equals(pq) && pq.getAscii() != NULL_VALUE) {
+            codeWordTable.put(pq.getAscii(), String.valueOf(pq.getBinaryLeft()));
+            return;
+        }
+        if (root.equals(pq) && pq.getLeft() == null && pq.getRight() == null && pq.getAscii() == NULL_VALUE) {
             return;
         }
         if (parent != null) {
@@ -166,14 +174,9 @@ public class Huffman {
             strBuilder.append(codeWordTable.get(character));
         });
 
-        boolean oneAdded = false;
+        strBuilder.append(1);
         while (strBuilder.length() % 8 != 0) {
-            if (!oneAdded) {
-                strBuilder.append(1);
-                oneAdded = true;
-            } else {
-                strBuilder.append(0);
-            }
+            strBuilder.append(0);
         }
 
         System.out.println("Bit string created.");
@@ -210,8 +213,7 @@ public class Huffman {
     * Read binary file in (.dat) and converts it into a bit-string.
     * To get the 8bits we convert the signed byte to an unsigned integer
     * by adding 0xFF to it.
-    * Additionally, the extended bits are removed at the end
-    * if the length of binary string not multiple of 8.
+    * Additionally, the extended bits are removed at the end.
     * */
     private static String readBinaryFile(String pathname) throws IOException {
         File file = new File(pathname);
@@ -226,7 +228,7 @@ public class Huffman {
 
         fis.close();
 
-        return sb.length() % 8 == 0 ? sb.toString() : removeExtendedBits(sb);
+        return removeExtendedBits(sb);
     }
 
     private static String removeExtendedBits(StringBuilder sb) {
