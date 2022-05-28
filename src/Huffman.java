@@ -210,7 +210,8 @@ public class Huffman {
     * Read binary file in (.dat) and converts it into a bit-string.
     * To get the 8bits we convert the signed byte to an unsigned integer
     * by adding 0xFF to it.
-    * Additionally, the extended bits are removed at the end.
+    * Additionally, the extended bits are removed at the end
+    * if the length of binary string not multiple of 8.
     * */
     private static String readBinaryFile(String pathname) throws IOException {
         File file = new File(pathname);
