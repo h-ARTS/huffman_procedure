@@ -225,7 +225,7 @@ public class Huffman {
 
         fis.close();
 
-        return removeExtendedBits(sb);
+        return sb.length() % 8 == 0 ? sb.toString() : removeExtendedBits(sb);
     }
 
     private static String removeExtendedBits(StringBuilder sb) {
